@@ -1,2 +1,4 @@
 .DS_Store
 *.o
+cocoa_gl.temp
+cocoa_gl.app/Contents/MacOS/Cocoa OpenGL
