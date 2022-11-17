@@ -1,7 +1,6 @@
 
-#import <OpenGL/gl.h>
-#import <OpenGL/glext.h>
-#import <OpenGL/glu.h>
+#import <OpenGL/gl3.h>
+#import <OpenGL/gl3ext.h>
 
 @interface BasicOpenGLView : NSOpenGLView {
     NSTimer * timer;
