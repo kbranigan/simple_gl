@@ -162,7 +162,6 @@ void extend_content_bounds(double x, double y) {
   {
     NSOpenGLPFADoubleBuffer,
     NSOpenGLPFAAccelerated,
-    NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core,
     NSOpenGLPFASampleBuffers, (NSOpenGLPixelFormatAttribute)(4),
     NSOpenGLPFASamples, (NSOpenGLPixelFormatAttribute)(4),
     NSOpenGLPFAColorSize, 32,
