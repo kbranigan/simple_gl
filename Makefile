@@ -2,6 +2,7 @@ all: cocoa_gl.temp
 
 OBJECTS_COCOA_GL= \
 	AppDelegate.o \
+	point_on_path.o \
 	main.o
 
 cocoa_gl.temp: $(OBJECTS_COCOA_GL) cocoa_gl.app/Contents/Resources/English.lproj/MainMenu.nib
