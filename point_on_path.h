@@ -27,7 +27,7 @@ struct s_pop { // point on path
 
 struct s_thing {
   enum thing_type type;
-  struct s_pop p; // float x, y, angle, index_on_path;
+  struct s_pop p;
   struct s_path * on_path;
   struct s_thing * next_thing;
   struct s_thing * prev_thing;
@@ -39,29 +39,43 @@ struct s_thing {
 
 struct s_actor {
   enum thing_type type;
-  struct s_pop p; // float x, y, angle, index_on_path;
+  struct s_pop p;
   struct s_path * on_path;
   struct s_thing * next_thing;
   struct s_thing * prev_thing;
-  float velocity;     // m/s
+  float velocity; // m/s
   float max_velocity; // m/s
   float acceleration; // m/s/s
   float max_acceleration; // 1g = 9.8066 m/s/s
 
+  ////////////////////
+
   float width, height;
   int num_segments;
 
-  // route
   int route_step;
   int num_route_things;
   struct s_thing ** route_things;
   // struct s_route route;
 };
 
-// struct s_stop {
-//   float x, y, angle, index_on_path;
-//   struct s_path * on_path;
-// };
+struct s_stop {
+  enum thing_type type;
+  struct s_pop p;
+  struct s_path * on_path;
+  struct s_thing * next_thing;
+  struct s_thing * prev_thing;
+  float velocity; // m/s
+  float max_velocity; // m/s
+  float acceleration; // m/s/s
+  float max_acceleration; // 1g = 9.8066 m/s/s
+
+  ////////////////////
+
+  float width, height;
+  int num_segments;
+  float path_offset; // left/right side
+};
 
 struct s_path {
   int num_points;
@@ -80,7 +94,7 @@ extern struct s_path ** paths;
 struct s_path * add_new_path(int num_points);
 void add_path_point(struct s_path * path, float x, float y);
 struct s_actor * add_new_actor_on_path(struct s_path * path, float x, float y, float max_velocity, float max_acceleration);
-struct s_thing * add_new_stop_on_path(struct s_path * path, float x, float y);
+struct s_stop * add_new_stop_on_path(struct s_path * path, float x, float y);
 
 void add_thing_to_actor_route(struct s_actor * actor, struct s_thing * thing);
 struct s_pop copy_pop(struct s_thing * t);

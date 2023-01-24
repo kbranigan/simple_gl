@@ -119,7 +119,7 @@ void extend_content_bounds(double x, double y) {
           // glVertex3f(actor->p.x, actor->p.y, 0);
           // glVertex3f(p2.x, p2.y, 0);
 
-          float time_to_stop = actor->velocity / fabs(actor->max_acceleration);
+          float time_to_stop = (actor->velocity - dest_thing->velocity) / fabs(actor->max_acceleration);
           float dist_to_stop = actor->velocity * time_to_stop + 0.5 * -fabs(actor->max_acceleration) * pow(time_to_stop, 2);
 
           // p2 = copy_pop((struct s_thing *)actor);
@@ -147,10 +147,38 @@ void extend_content_bounds(double x, double y) {
 
       if (thing->type == STOP)
       {
-        glVertex3f(thing->p.x + 30, thing->p.y + 30, 0);
-        glVertex3f(thing->p.x + 30, thing->p.y - 30, 0);
-        glVertex3f(thing->p.x - 30, thing->p.y - 30, 0);
-        glVertex3f(thing->p.x - 30, thing->p.y + 30, 0);
+        struct s_stop * stop = (struct s_stop *)thing;
+        float hyp = sqrt((stop->width * 0.5) * (stop->width * 0.5) + (stop->height * 0.5) * (stop->height * 0.5));
+        if (scale_big) hyp *= scale_big; // just so it's visible
+        
+        glColor4f(0.6 - 0.2 * j, 0.2 * j, 0, 0.6);
+        // glVertex3f(thing->p.x + 30, thing->p.y + 30, 0);
+        // glVertex3f(thing->p.x + 30, thing->p.y - 30, 0);
+        // glVertex3f(thing->p.x - 30, thing->p.y - 30, 0);
+        // glVertex3f(thing->p.x - 30, thing->p.y + 30, 0);
+
+        for (int k = 0 ; k < stop->num_segments ; k++) {
+          struct s_pop p2 = copy_pop((struct s_thing *)stop);
+          offset_along_path(path, &p2, -(k * stop->height * scale_big));
+
+          float tla, tra, bra, bla;
+
+          // tla = atan2( stop->height, -stop->width); glVertex3f(p2.x + cos(tla + p2.angle - PI * .5) * hyp, p2.y + sin(tla + p2.angle - PI * .5) * hyp, 0);
+          // tra = atan2( stop->height,  stop->width); glVertex3f(p2.x + cos(tra + p2.angle - PI * .5) * hyp, p2.y + sin(tra + p2.angle - PI * .5) * hyp, 0);
+          // bra = atan2(-stop->height,  stop->width); glVertex3f(p2.x + cos(bra + p2.angle - PI * .5) * hyp, p2.y + sin(bra + p2.angle - PI * .5) * hyp, 0);
+          // bla = atan2(-stop->height, -stop->width); glVertex3f(p2.x + cos(bla + p2.angle - PI * .5) * hyp, p2.y + sin(bla + p2.angle - PI * .5) * hyp, 0);
+
+          tla = atan2( stop->height, -stop->width); glVertex3f(p2.x + (cos(p2.angle + PI * .5) * stop->path_offset * scale_big) + cos(tla + p2.angle - PI * .5) * hyp, p2.y + (sin(p2.angle + PI * .5) * stop->path_offset * scale_big) + sin(tla + p2.angle - PI * .5) * hyp, 0);
+          tra = atan2( stop->height,  stop->width); glVertex3f(p2.x + (cos(p2.angle + PI * .5) * stop->path_offset * scale_big) + cos(tra + p2.angle - PI * .5) * hyp, p2.y + (sin(p2.angle + PI * .5) * stop->path_offset * scale_big) + sin(tra + p2.angle - PI * .5) * hyp, 0);
+          bra = atan2(-stop->height,  stop->width); glVertex3f(p2.x + (cos(p2.angle + PI * .5) * stop->path_offset * scale_big) + cos(bra + p2.angle - PI * .5) * hyp, p2.y + (sin(p2.angle + PI * .5) * stop->path_offset * scale_big) + sin(bra + p2.angle - PI * .5) * hyp, 0);
+          bla = atan2(-stop->height, -stop->width); glVertex3f(p2.x + (cos(p2.angle + PI * .5) * stop->path_offset * scale_big) + cos(bla + p2.angle - PI * .5) * hyp, p2.y + (sin(p2.angle + PI * .5) * stop->path_offset * scale_big) + sin(bla + p2.angle - PI * .5) * hyp, 0);
+
+          tla = atan2( stop->height, -stop->width); glVertex3f(p2.x + (cos(p2.angle + PI * .5) * -stop->path_offset * scale_big) + cos(tla + p2.angle - PI * .5) * hyp, p2.y + (sin(p2.angle + PI * .5) * -stop->path_offset * scale_big) + sin(tla + p2.angle - PI * .5) * hyp, 0);
+          tra = atan2( stop->height,  stop->width); glVertex3f(p2.x + (cos(p2.angle + PI * .5) * -stop->path_offset * scale_big) + cos(tra + p2.angle - PI * .5) * hyp, p2.y + (sin(p2.angle + PI * .5) * -stop->path_offset * scale_big) + sin(tra + p2.angle - PI * .5) * hyp, 0);
+          bra = atan2(-stop->height,  stop->width); glVertex3f(p2.x + (cos(p2.angle + PI * .5) * -stop->path_offset * scale_big) + cos(bra + p2.angle - PI * .5) * hyp, p2.y + (sin(p2.angle + PI * .5) * -stop->path_offset * scale_big) + sin(bra + p2.angle - PI * .5) * hyp, 0);
+          bla = atan2(-stop->height, -stop->width); glVertex3f(p2.x + (cos(p2.angle + PI * .5) * -stop->path_offset * scale_big) + cos(bla + p2.angle - PI * .5) * hyp, p2.y + (sin(p2.angle + PI * .5) * -stop->path_offset * scale_big) + sin(bla + p2.angle - PI * .5) * hyp, 0);
+          // printf("%d : %f\n", k, p2.angle - PI * .5);
+        }
       }
       else if (thing->type == ACTOR)
       {
@@ -171,7 +199,7 @@ void extend_content_bounds(double x, double y) {
           // float time_to_full_speed = (actor->max_velocity - actor->velocity) / fabs(actor->max_acceleration);
           // float dist_to_full_speed = actor->velocity * time_to_full_speed + 0.5 * fabs(actor->max_acceleration) * pow(time_to_full_speed, 2);
 
-          float time_to_stop = actor->velocity / fabs(actor->max_acceleration);
+          float time_to_stop = (actor->velocity - dest_thing->velocity) / fabs(actor->max_acceleration);
           float dist_to_stop = actor->velocity * time_to_stop + 0.5 * -fabs(actor->max_acceleration) * pow(time_to_stop, 2);
 
           if (dist_to_destination < 1) {
@@ -186,27 +214,17 @@ void extend_content_bounds(double x, double y) {
           } else if (dist_to_stop > dist_to_destination) {
             actor->acceleration = -fabs(actor->max_acceleration);
           }
+          // kbfu i don't like when the dist_to_stop is close to the dist_to_destination then how the acceleration flip flops between min and max, it's not accurate, but it works for now
         }
 
         for (int k = 0 ; k < actor->num_segments ; k++) {
           struct s_pop p2 = copy_pop((struct s_thing *)actor);
-          if (k == 0) {
-          } else {
-            offset_along_path(path, &p2, -(k * actor->height * scale_big));
-          }
+          offset_along_path(path, &p2, -(k * actor->height * scale_big));
 
           // int g2 = test_if_other_actors_within(path, actor, actor->height * 2);
           // if (point_dist((struct s_point *)actor, (struct s_point *)actor->next_actor) < actor->height * 1.1) {
           //   actor->velocity = actor->next_actor->velocity;
           // } else {
-
-          //   // a moving 50 p/s
-          //   // b moving 60 p/s
-          //   // dist between 200
-          //   // max velocity
-          //   // max accel
-          //   // max decel
-          // }
 
           // int g = test_if_other_actors_within(path, actor, actor->height);
           // g should never be true, obviously
@@ -420,7 +438,7 @@ void extend_content_bounds(double x, double y) {
 
   struct s_path * path = add_new_path(401);
   for (int i = 0 ; i < path->num_points ; i++) {
-    path->points[i].x = cos(i / (path->num_points - 1.) * 3.1415 * 2.) * radius - radius;
+    path->points[i].x = cos(i / (path->num_points - 1.) * 3.1415 * 2.) * radius;
     path->points[i].y = sin(i / (path->num_points - 1.) * 3.1415 * 2.) * radius;
   }
 
@@ -437,31 +455,26 @@ void extend_content_bounds(double x, double y) {
   // float max_velocity = 80000 / 3600.;    // 80km/hr
   // float max_acceleration = 9.8066 * 0.3; // 0.3g
   
-  // add_new_actor_on_path(path,  0.707 * radius - radius, -0.707 * radius, max_velocity, max_acceleration);
-  // add_new_actor_on_path(path, -0.707 * radius - radius, -0.707 * radius, max_velocity, max_acceleration);
-  struct s_actor * actor = add_new_actor_on_path(path,  0.707 * radius - radius, -0.707 * radius, max_velocity, max_acceleration);
-  // add_new_actor_on_path(path, -0.707 * radius - radius,  0.707 * radius, max_velocity, max_acceleration);
+  // add_new_actor_on_path(path,  0.707 * radius, -0.707 * radius, max_velocity, max_acceleration);
+  // add_new_actor_on_path(path, -0.707 * radius, -0.707 * radius, max_velocity, max_acceleration);
+  struct s_actor * actor = add_new_actor_on_path(path,  0.707 * radius, -0.707 * radius, max_velocity, max_acceleration);
+  // add_new_actor_on_path(path, -0.707 * radius,  0.707 * radius, max_velocity, max_acceleration);
 
-  struct s_actor * hehe = add_new_actor_on_path(path, 0.707 * radius - radius, 0.707 * radius, max_velocity, max_acceleration);
+  struct s_actor * hehe = add_new_actor_on_path(path, 0.707 * radius, 0.707 * radius, max_velocity, max_acceleration);
   hehe->num_segments = 1;
   hehe->velocity = hehe->max_velocity = 100;
   hehe->max_acceleration = 0;
 
-  // struct s_thing * stopr = 
-  add_new_stop_on_path(path, radius - radius, 0);
-  // struct s_thing * stopl = 
-  add_new_stop_on_path(path, -radius - radius, 0);
-  // struct s_thing * stopt = 
-  add_new_stop_on_path(path, 0 - radius, radius);
-  // struct s_thing * stopb = 
-  add_new_stop_on_path(path, 0 - radius, -radius);
+  struct s_stop * stopt = add_new_stop_on_path(path, 0, radius);
+  struct s_stop * stopl = add_new_stop_on_path(path, -radius, 0);
+  struct s_stop * stopb = add_new_stop_on_path(path, 0, -radius);
+  struct s_stop * stopr = add_new_stop_on_path(path, radius, 0);
 
-  add_thing_to_actor_route(actor, (struct s_thing *)hehe);
-
-  // add_thing_to_actor_route(actor, stopt);
-  // add_thing_to_actor_route(actor, stopl);
-  // add_thing_to_actor_route(actor, stopb);
-  // add_thing_to_actor_route(actor, stopr);
+  // add_thing_to_actor_route(actor, (struct s_thing *)hehe);
+  add_thing_to_actor_route(actor, (struct s_thing *)stopt);
+  add_thing_to_actor_route(actor, (struct s_thing *)stopl);
+  add_thing_to_actor_route(actor, (struct s_thing *)stopb);
+  add_thing_to_actor_route(actor, (struct s_thing *)stopr);
 
   // add_new_actor_on_path(path2,  0.707 * radius + radius, -0.707 * radius, max_velocity, max_acceleration);
   // add_new_actor_on_path(path2, -0.707 * radius + radius, -0.707 * radius, max_velocity, max_acceleration);

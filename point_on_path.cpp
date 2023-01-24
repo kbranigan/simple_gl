@@ -62,11 +62,12 @@ struct s_actor * add_new_actor_on_path(struct s_path * path, float x, float y, f
   actor->p.y = y;
   actor->on_path = path;
   move_thing_onto_its_path((struct s_thing *)actor);
+
   actor->num_segments = 6;
-  actor->width = 3.124;
-  actor->height = 23;
+  actor->width = 3.124; // ttc subway width
+  actor->height = 23; // ttc subway length
   actor->velocity = 0;
-  actor->acceleration = 0;//max_acceleration;
+  actor->acceleration = 0; // max_acceleration;
   actor->max_velocity = max_velocity;
   actor->max_acceleration = max_acceleration;
 
@@ -74,44 +75,31 @@ struct s_actor * add_new_actor_on_path(struct s_path * path, float x, float y, f
   actor->route_things = NULL;
   actor->num_route_things = 0;
 
-  // actor->velocity = actor->max_velocity;
-  // actor->acceleration = 0;
-
   return actor;
-
-  // path->num_actors ++;
-  // path->actors = (struct s_actor *)realloc((void *)path->actors, sizeof(struct s_actor) * path->num_actors);
-  // struct s_actor * actor = &path->actors[path->num_actors - 1];
-  // memset(actor, 0, sizeof(struct s_actor));
-  // struct s_pop p;
-  // point_on_path(path, x, y, &p); //, &actor->angle, &actor->perc_on_path, NULL);
-  // actor->x = p.x;
-  // actor->y = p.y;
-  // actor->angle = p.angle;
-  // actor->index = p.index;
-  // actor->on_path = path;
-  // // actor->perc_on_path = 0;
-  // actor->num_segments = 1;
-  // actor->width = 50;
-  // actor->height = 250;
-  // actor->velocity = velocity;
-  // actor->max_velocity = max_velocity;
-  // actor->acceleration = acceleration;
-  // actor->max_acceleration = max_acceleration;
-  // return actor;
 }
 
-struct s_thing * add_new_stop_on_path(struct s_path * path, float x, float y) {
+struct s_stop * add_new_stop_on_path(struct s_path * path, float x, float y) {
   path->num_things ++;
   path->things = (struct s_thing**)realloc((void *)path->things, sizeof(struct s_thing *) * path->num_things);
-  struct s_thing * thing = (struct s_thing *)malloc(sizeof(struct s_thing));
-  path->things[path->num_things - 1] = thing;
-  thing->type = STOP;
-  thing->p.x = x;
-  thing->p.y = y;
-  thing->on_path = path;
-  move_thing_onto_its_path(thing);
-  return thing;
+  struct s_stop * stop = (struct s_stop *)malloc(sizeof(struct s_stop));
+  path->things[path->num_things - 1] = (struct s_thing*)stop;
+  stop->on_path = path;
+  stop->type = STOP;
+  stop->p.x = x;
+  stop->p.y = y;
+  stop->on_path = path;
+  move_thing_onto_its_path((struct s_thing*)stop);
+
+  stop->num_segments = 6;
+  stop->width = 3.124; // ttc subway width
+  stop->height = 23; // ttc subway length
+  stop->velocity = 0;
+  stop->acceleration = 0;
+  stop->max_velocity = 0;
+  stop->max_acceleration = 0;
+
+  stop->path_offset = 3.124;
+  return stop;
 }
 
 float point_dist(struct s_point * a, struct s_point * b) {
@@ -188,6 +176,7 @@ void move_thing_onto_its_path(struct s_thing * thing) {
 
 void offset_along_path(struct s_path * path, struct s_pop * pop, float offset) {
   if (offset == 0) return;
+  if (path == NULL) return;
 
   struct s_point h;
   h.x = pop->x;
@@ -226,6 +215,7 @@ void offset_along_path(struct s_path * path, struct s_pop * pop, float offset) {
         }
         offset -= d;
       };
+      pop->angle += 3.1415926535;
     }
   } else if (offset > 0) {
     // if (i < 0 || i >= path->num_points) { printf("poo %d(%f) of %d\n", i, pop->index, path->num_points);exit(1);}
