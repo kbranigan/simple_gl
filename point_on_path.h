@@ -2,10 +2,6 @@
 #ifndef POINT_ALONG_SHAPE_H
 #define POINT_ALONG_SHAPE_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <math.h>
 
 #define PI 3.1415926535
@@ -78,6 +74,8 @@ struct s_stop {
 };
 
 struct s_path {
+  float path_length;
+
   int num_points;
   struct s_point * points;
   int num_things;
@@ -95,23 +93,21 @@ struct s_path * add_new_path(int num_points);
 void add_path_point(struct s_path * path, float x, float y);
 struct s_actor * add_new_actor_on_path(struct s_path * path, float x, float y, float max_velocity, float max_acceleration);
 struct s_stop * add_new_stop_on_path(struct s_path * path, float x, float y);
+void remove_thing_from_path(struct s_path * path, struct s_thing * thing);
 
 void add_thing_to_actor_route(struct s_actor * actor, struct s_thing * thing);
 struct s_pop copy_pop(struct s_thing * t);
 
 float point_dist(struct s_point * a, struct s_point * b);
+float point_dist(struct s_pop * a, struct s_pop * b);
 float path_length(struct s_path * p);
 void point_on_path(struct s_path * path, float x, float y, struct s_pop * ret);
 void offset_along_path(struct s_path * path, struct s_pop * pop, float offset);
-// int test_if_other_actors_within(struct s_path * path, struct s_actor * actor, float distance);
 void update_next_prev_things(struct s_path * path);
 void move_thing_onto_its_path(struct s_thing * thing);
 
+int index_of_thing(struct s_path * path, struct s_thing * thing);
 float index_distance(struct s_path * path, struct s_thing * a, struct s_thing * b);
 float real_distance(struct s_path * path, struct s_thing * a, struct s_thing * b);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

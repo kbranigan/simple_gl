@@ -25,6 +25,8 @@ struct s_path * add_new_path(int num_points) {
   path->num_points = num_points;
   path->points = (struct s_point *)malloc(sizeof(struct s_point) * path->num_points);
 
+  path->path_length = 0;
+
   // path->num_actors = 0;
   // path->actors = NULL;
 
@@ -63,7 +65,7 @@ struct s_actor * add_new_actor_on_path(struct s_path * path, float x, float y, f
   actor->on_path = path;
   move_thing_onto_its_path((struct s_thing *)actor);
 
-  actor->num_segments = 6;
+  actor->num_segments = 8;
   actor->width = 3.124; // ttc subway width
   actor->height = 23; // ttc subway length
   actor->velocity = 0;
@@ -102,7 +104,29 @@ struct s_stop * add_new_stop_on_path(struct s_path * path, float x, float y) {
   return stop;
 }
 
+void remove_thing_from_path(struct s_path * path, struct s_thing * thing) {
+  if (path->num_things == 0) return;
+  int thing_index = index_of_thing(path, thing);
+
+  printf("remove_thing_from_path %d\n", thing_index);
+
+  if (thing_index < path->num_things - 1) {
+    memmove(&path->things[thing_index], &path->things[thing_index + 1], (path->num_things - thing_index - 1) * sizeof(path->things[0]));
+  }
+
+  path->num_things--;
+  path->things = (struct s_thing**)realloc((void *)path->things, sizeof(struct s_thing *) * path->num_things);
+
+  update_next_prev_things(path);
+}
+
 float point_dist(struct s_point * a, struct s_point * b) {
+  float dx = b->x - a->x;
+  float dy = b->y - a->y;
+  return sqrt(dx*dx + dy*dy);
+}
+
+float point_dist(struct s_pop * a, struct s_pop * b) {
   float dx = b->x - a->x;
   float dy = b->y - a->y;
   return sqrt(dx*dx + dy*dy);
@@ -218,7 +242,7 @@ void offset_along_path(struct s_path * path, struct s_pop * pop, float offset) {
       pop->angle += 3.1415926535;
     }
   } else if (offset > 0) {
-    // if (i < 0 || i >= path->num_points) { printf("poo %d(%f) of %d\n", i, pop->index, path->num_points);exit(1);}
+    if (i < 0 || i >= path->num_points) { printf("poo %d(%f) of %d\n", i, pop->index, path->num_points); exit(1); }
     struct s_point * a = &path->points[i == path->num_points ? 0 : i];
     struct s_point * b = &path->points[(i == path->num_points - 1) ? 0 : i + 1];
     if (point_dist(&h, b) > offset) {
@@ -252,11 +276,6 @@ void offset_along_path(struct s_path * path, struct s_pop * pop, float offset) {
   }
 }
 
-// int test_if_other_actors_within(struct s_path * path, struct s_actor * actor, float distance) {
-//   return point_dist((struct s_point *)actor, (struct s_point *)actor->prev_actor) < distance
-//       || point_dist((struct s_point *)actor, (struct s_point *)actor->next_actor) < distance;
-// }
-
 float index_distance(struct s_path * path, struct s_thing * a, struct s_thing * b) {
   if (b == NULL) b = a;
   return (a->p.index < b->p.index)
@@ -264,9 +283,8 @@ float index_distance(struct s_path * path, struct s_thing * a, struct s_thing * 
         : path->num_points - 1 - a->p.index + b->p.index; // loop
 }
 
-int shit = 0;
-
 float real_distance(struct s_path * path, struct s_thing * a, struct s_thing * b) {
+  if (a == NULL || b == NULL) return 0;
   float ret = 0;
   int watch = 0;
   int start = floor(a->p.index);
@@ -294,24 +312,42 @@ float real_distance(struct s_path * path, struct s_thing * a, struct s_thing * b
     if (i == path->num_points - 1) i = -1;
     // printf("%d %d %d %f\n", i, (int)a->p.index, (int)b->p.index, ret);
     watch ++;
-    if (watch > path->num_points * 2) { printf("oops %d %d %f\n", start, stop, ret); exit(1); }
+    if (watch > path->num_points * 3) { printf("oops %d %d %f\n", start, stop, ret); exit(1); }
+  }
+
+  // near full length distance but in the same point
+  if (ret > path->path_length * 0.99 && ret < path->path_length * 1.01 && point_dist(&a->p, &b->p) < 0.5) {
+    return 0;
   }
 
   // printf("ret = %f\n", ret);
   return ret;
 }
 
+int index_of_thing(struct s_path * path, struct s_thing * thing) {
+  for (int i = 0 ; i < path->num_things ; i++) {
+    if (path->things[i] == thing) return i;
+  }
+  printf("index_of_thing failure\n"); exit(1);
+}
+
 void update_next_prev_things(struct s_path * path) {
   for (int i = 0 ; i < path->num_things ; i++) {
     struct s_thing * thing = path->things[i];
+    thing->prev_thing = NULL;
+    thing->next_thing = NULL;
     for (int j = 0 ; j < path->num_things ; j++) {
       struct s_thing * thing2 = path->things[j];
       if (i == j) continue;
+      if (thing->type != thing2->type) continue;
       if (thing->prev_thing == NULL) thing->prev_thing = thing2;
       if (thing->next_thing == NULL) thing->next_thing = thing2;
       float d = index_distance(path, thing, thing2);
       if (d  <= index_distance(path, thing, thing->next_thing)) thing->next_thing = thing2;
       if (d  >= index_distance(path, thing, thing->prev_thing)) thing->prev_thing = thing2;
+    }
+    if (i == index_of_thing(path, thing->prev_thing) || thing->type != thing->prev_thing->type) {
+      printf("dang %d %d - %d %d\n", i, thing->type, index_of_thing(path, thing->prev_thing), thing->prev_thing->type); exit(1);
     }
   }
 }
