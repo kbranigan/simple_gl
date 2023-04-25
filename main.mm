@@ -93,7 +93,7 @@ int frame_id = 0;
     update_next_prev_things(path);
     // glBegin(GL_LINES);
     // for (int j = 0 ; j < path->num_actors ; j++) {
-    //   struct s_actor * actor = &path->actors[j];
+    //   struct s_thing * actor = &path->actors[j];
     //   if (actor->next_actor != NULL) {
     //     glColor4f(1, 0, 0, 1);
     //     glVertex3f(actor->p.x, actor->p.y, 0);
@@ -124,7 +124,7 @@ int frame_id = 0;
       struct s_thing * thing = path->things[path_thing_i];
 
       if (thing->type == ACTOR) {
-        struct s_actor * actor = (struct s_actor *)thing;
+        struct s_thing * actor = (struct s_thing *)thing;
 
         if (actor->num_route_things == 0) continue;
         struct s_thing * dest_thing = actor->route_things[actor->route_step];
@@ -215,7 +215,7 @@ int frame_id = 0;
 
       if (thing->type == STOP)
       {
-        struct s_stop * stop = (struct s_stop *)thing;
+        struct s_thing * stop = (struct s_thing *)thing;
         float draw_hyp = sqrt((stop->width * 0.5) * (stop->width * 0.5) + (stop->height * 0.5) * (stop->height * 0.5));
         if (scale_big) draw_hyp *= scale_big; // just so it's visible
         
@@ -251,7 +251,7 @@ int frame_id = 0;
       }
       else if (thing->type == ACTOR)
       {
-        struct s_actor * actor = (struct s_actor *)thing;
+        struct s_thing * actor = (struct s_thing *)thing;
         float draw_hyp = sqrt((actor->width * 0.5) * (actor->width * 0.5) + (actor->height * 0.5) * (actor->height * 0.5));
         if (scale_big) draw_hyp *= scale_big; // just so it's visible
 
@@ -266,7 +266,7 @@ int frame_id = 0;
             if (path->things[i]->type == STOP)
               printf("%d: %d\n", i, path->things[i]->type);
             else if (path->things[i]->type == ACTOR) {
-              printf("%d: %d seg:%d route:%d\n", i, path->things[i]->type, path->things[i]->num_segments, ((struct s_actor*)path->things[i])->num_route_things);
+              printf("%d: %d seg:%d route:%d\n", i, path->things[i]->type, path->things[i]->num_segments, ((struct s_thing*)path->things[i])->num_route_things);
               for (int j = 0 ; j < path->things[i]->num_route_things ; j++) {
                 printf("  %d: %ld\n", j, path->things[i]->route_things[j]);
               }
@@ -330,7 +330,7 @@ int frame_id = 0;
             struct s_pop p2;
             copy_pop((struct s_thing *)actor, &p2);
             offset_along_path(path, &p2, -(actor->num_segments * actor->height * scale_big));
-            struct s_actor * new_actor = add_new_actor_on_path(actor->on_path, p2.x, p2.y, actor->max_velocity, actor->max_acceleration);
+            struct s_thing * new_actor = add_new_actor_on_path(actor->on_path, p2.x, p2.y, actor->max_velocity, actor->max_acceleration);
             new_actor->num_segments = 1;
             new_actor->velocity = actor->velocity * 0.75;
             new_actor->acceleration = actor->acceleration;
@@ -347,7 +347,7 @@ int frame_id = 0;
         }
         else if (mode_enum == SPECIAL // check behind, not in front
          && actor->num_segments == 1
-         && ((struct s_actor*)actor->prev_thing)->num_segments > 1)
+         && ((struct s_thing*)actor->prev_thing)->num_segments > 1)
         {
 
           // if (frame_id < 10)
@@ -360,13 +360,13 @@ int frame_id = 0;
           }
 
           if ( (dist_to_prev_actor < (actor->height * actor->num_segments) * scale_big)
-            && ((struct s_actor *)actor->prev_thing)->velocity > actor->velocity)
+            && ((struct s_thing *)actor->prev_thing)->velocity > actor->velocity)
           {
 
             // glColor4f(1, 0, 0, 1);
             printf("%d attach %d (%d) (%d)\n", frame_id, path_thing_i, actor->num_segments, actor->num_route_things);
 
-            ((struct s_actor*)actor->prev_thing)->num_segments += actor->num_segments;
+            ((struct s_thing*)actor->prev_thing)->num_segments += actor->num_segments;
             offset_along_path(path, &actor->prev_thing->p, dist_to_prev_actor);
             remove_thing_from_path(path, (struct s_thing *)actor);
 
@@ -386,7 +386,7 @@ int frame_id = 0;
         // if (dist_to_prev_thing < (dist_to_prev_thing_speed + prev_thing_dest_to_halt + actor->height * 2))
         // {
         //   // printf("accel\n");
-        //   struct s_actor * prev_actor = (struct s_actor*)actor->prev_thing;
+        //   struct s_thing * prev_actor = (struct s_thing*)actor->prev_thing;
         //   if (actor->prev_thing->type == ACTOR && prev_actor->num_route_things > 0) {
         //     // add_thing_to_actor_route(actor, prev_actor->route_things[prev_actor->route_step]);
         //     // prev_actor->route_step++;
@@ -655,19 +655,19 @@ int frame_id = 0;
   
   // add_new_actor_on_path(path,  0.707 * radius, -0.707 * radius, max_velocity, max_acceleration);
   // add_new_actor_on_path(path, -0.707 * radius, -0.707 * radius, max_velocity, max_acceleration);
-  // struct s_actor * maintrain = add_new_actor_on_path(path,  0.707 * radius, -0.707 * radius, max_velocity, max_acceleration);
+  // struct s_thing * maintrain = add_new_actor_on_path(path,  0.707 * radius, -0.707 * radius, max_velocity, max_acceleration);
   // maintrain->velocity = maintrain->max_velocity;
   // add_new_actor_on_path(path, -0.707 * radius,  0.707 * radius, max_velocity, max_acceleration);
 
-  // struct s_actor * hehe = add_new_actor_on_path(path, 0.707 * radius, 0.707 * radius, max_velocity, max_acceleration);
+  // struct s_thing * hehe = add_new_actor_on_path(path, 0.707 * radius, 0.707 * radius, max_velocity, max_acceleration);
   // hehe->num_segments = 1;
   // hehe->velocity = hehe->max_velocity = 100;
   // hehe->max_acceleration = 0;
 
-  struct s_stop * temp_stops[10];
+  struct s_thing * temp_stops[10];
   int num_stops = 6;
   for (int i = 0 ; i < num_stops ; i++) {
-    struct s_stop * stop = add_new_stop_on_path(path, cos(i / (float)num_stops * 3.1415926535 * 2.) * radius, sin(i / (float)num_stops * 3.1415926535 * 2.) * radius);
+    struct s_thing * stop = add_new_stop_on_path(path, cos(i / (float)num_stops * 3.1415926535 * 2.) * radius, sin(i / (float)num_stops * 3.1415926535 * 2.) * radius);
     // add_thing_to_actor_route(maintrain, (struct s_thing *)stop);
     temp_stops[i] = stop;
   }
@@ -675,7 +675,7 @@ int frame_id = 0;
   for (int i = 0 ; i < num_stops ; i++) {
     if (mode_enum == SPECIAL) {
       if (i % 2 == 0) {
-        struct s_actor * parkedtrain = add_new_actor_on_path(path, temp_stops[i]->p.x, temp_stops[i]->p.y, max_velocity, max_acceleration);
+        struct s_thing * parkedtrain = add_new_actor_on_path(path, temp_stops[i]->p.x, temp_stops[i]->p.y, max_velocity, max_acceleration);
 
         // parkedtrain->num_segments = 5;
         for (int k = 0 ; k < num_stops ; k++) {
@@ -690,7 +690,7 @@ int frame_id = 0;
       //   add_thing_to_actor_route(parkedtrain, (struct s_thing*)temp_stops[i]);
       }
     } else if (i % 2 == 0) { // num_stops - 1) {
-      // struct s_actor * parkedtrain = add_new_actor_on_path(path, temp_stops[i]->p.x, temp_stops[i]->p.y, max_velocity, max_acceleration);
+      // struct s_thing * parkedtrain = add_new_actor_on_path(path, temp_stops[i]->p.x, temp_stops[i]->p.y, max_velocity, max_acceleration);
       // printf("%d\n", i);
 
       // parkedtrain->num_segments = 6;
@@ -702,7 +702,7 @@ int frame_id = 0;
       // }
       // parkedtrain->velocity = parkedtrain->max_velocity;
     // } else {
-    //   struct s_actor * parkedtrain = add_new_actor_on_path(path, temp_stops[i]->p.x, temp_stops[i]->p.y, max_velocity, max_acceleration);
+    //   struct s_thing * parkedtrain = add_new_actor_on_path(path, temp_stops[i]->p.x, temp_stops[i]->p.y, max_velocity, max_acceleration);
     //   parkedtrain->num_segments = 1;
     //   add_thing_to_actor_route(parkedtrain, (struct s_thing*)temp_stops[i]);
     }
@@ -712,7 +712,7 @@ int frame_id = 0;
     if (path->things[i]->type == STOP)
       printf("%d: %d\n", i, path->things[i]->type);
     else if (path->things[i]->type == ACTOR)
-      printf("%d: %d seg:%d route:%d\n", i, path->things[i]->type, path->things[i]->num_segments, ((struct s_actor*)path->things[i])->num_route_things);
+      printf("%d: %d seg:%d route:%d\n", i, path->things[i]->type, path->things[i]->num_segments, ((struct s_thing*)path->things[i])->num_route_things);
   }
 
   content_center[0] = (content_bounds[0] + content_bounds[1]) / 2;

@@ -43,19 +43,19 @@ void add_path_point(struct s_path * path, float x, float y) {
   path->points[path->num_points-1].y = y;
 }
 
-void add_thing_to_actor_route(struct s_actor * actor, struct s_thing * thing) {
+void add_thing_to_actor_route(struct s_thing * actor, struct s_thing * thing) {
   actor->num_route_things++;
   actor->route_things = (struct s_thing **)realloc((void *)actor->route_things, sizeof(struct s_thing *) * actor->num_route_things);
   actor->route_things[actor->num_route_things - 1] = thing;
 }
 
-struct s_actor * add_new_actor_on_path(struct s_path * path, float x, float y, float max_velocity, float max_acceleration) {
+struct s_thing * add_new_actor_on_path(struct s_path * path, float x, float y, float max_velocity, float max_acceleration) {
   // max_velocity = 3000; // kbfu
   // max_acceleration = max_velocity * 0.25;
 
   path->num_things ++;
   path->things = (struct s_thing**)realloc((void *)path->things, sizeof(struct s_thing *) * path->num_things);
-  struct s_actor * actor = (struct s_actor *)malloc(sizeof(struct s_actor));
+  struct s_thing * actor = (struct s_thing *)malloc(sizeof(struct s_thing));
   path->things[path->num_things - 1] = (struct s_thing *)actor;
   actor->type = ACTOR;
   actor->p.x = x;
@@ -78,10 +78,10 @@ struct s_actor * add_new_actor_on_path(struct s_path * path, float x, float y, f
   return actor;
 }
 
-struct s_stop * add_new_stop_on_path(struct s_path * path, float x, float y) {
+struct s_thing * add_new_stop_on_path(struct s_path * path, float x, float y) {
   path->num_things ++;
   path->things = (struct s_thing**)realloc((void *)path->things, sizeof(struct s_thing *) * path->num_things);
-  struct s_stop * stop = (struct s_stop *)malloc(sizeof(struct s_stop));
+  struct s_thing * stop = (struct s_thing *)malloc(sizeof(struct s_thing));
   path->things[path->num_things - 1] = (struct s_thing*)stop;
   stop->on_path = path;
   stop->type = STOP;
