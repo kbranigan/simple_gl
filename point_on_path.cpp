@@ -8,13 +8,11 @@
 int num_paths = 0;
 struct s_path ** paths = NULL;
 
-struct s_pop copy_pop(struct s_thing * t) {
-  struct s_pop p;
-  p.x = t->p.x;
-  p.y = t->p.y;
-  p.index = t->p.index;
-  p.angle = t->p.angle;
-  return p;
+void copy_pop(struct s_thing * t, struct s_pop * p) {
+  p->x = t->p.x;
+  p->y = t->p.y;
+  p->index = t->p.index;
+  p->angle = t->p.angle;
 }
 
 struct s_path * add_new_path(int num_points) {
@@ -65,7 +63,7 @@ struct s_actor * add_new_actor_on_path(struct s_path * path, float x, float y, f
   actor->on_path = path;
   move_thing_onto_its_path((struct s_thing *)actor);
 
-  actor->num_segments = 8;
+  actor->num_segments = 6;
   actor->width = 3.124; // ttc subway width
   actor->height = 23; // ttc subway length
   actor->velocity = 0;
@@ -108,7 +106,7 @@ void remove_thing_from_path(struct s_path * path, struct s_thing * thing) {
   if (path->num_things == 0) return;
   int thing_index = index_of_thing(path, thing);
 
-  printf("remove_thing_from_path %d\n", thing_index);
+  // printf("remove_thing_from_path %d\n", thing_index);
 
   if (thing_index < path->num_things - 1) {
     memmove(&path->things[thing_index], &path->things[thing_index + 1], (path->num_things - thing_index - 1) * sizeof(path->things[0]));
@@ -307,8 +305,11 @@ float real_distance(struct s_path * path, struct s_thing * a, struct s_thing * b
   }
   // printf("stop = %d\n", stop);
 
+  if (start == path->num_points && stop == 0) return 0;
+
   for (int i = start ; i != stop ; i++) {
     ret += point_dist(&path->points[i], &path->points[i == path->num_points - 1 ? 0 : i + 1]);
+    if (isinf(ret)) { printf("well now %d %d %f\n", start, stop, ret); exit(1); }
     if (i == path->num_points - 1) i = -1;
     // printf("%d %d %d %f\n", i, (int)a->p.index, (int)b->p.index, ret);
     watch ++;

@@ -31,6 +31,16 @@ struct s_thing {
   float max_velocity; // m/s
   float acceleration; // m/s/s
   float max_acceleration; // 1g = 9.8066 m/s/s
+  float width, height;
+  int num_segments;
+
+  // stop
+  float path_offset; // left/right side
+
+  // actor
+  int route_step;
+  int num_route_things;
+  struct s_thing ** route_things;
 };
 
 struct s_actor {
@@ -43,12 +53,12 @@ struct s_actor {
   float max_velocity; // m/s
   float acceleration; // m/s/s
   float max_acceleration; // 1g = 9.8066 m/s/s
-
-  ////////////////////
-
   float width, height;
   int num_segments;
 
+  ////////////////////
+
+  float path_offset; // left/right side
   int route_step;
   int num_route_things;
   struct s_thing ** route_things;
@@ -65,12 +75,15 @@ struct s_stop {
   float max_velocity; // m/s
   float acceleration; // m/s/s
   float max_acceleration; // 1g = 9.8066 m/s/s
+  float width, height;
+  int num_segments;
 
   ////////////////////
 
-  float width, height;
-  int num_segments;
   float path_offset; // left/right side
+  int route_step;
+  int num_route_things;
+  struct s_thing ** route_things;
 };
 
 struct s_path {
@@ -96,7 +109,7 @@ struct s_stop * add_new_stop_on_path(struct s_path * path, float x, float y);
 void remove_thing_from_path(struct s_path * path, struct s_thing * thing);
 
 void add_thing_to_actor_route(struct s_actor * actor, struct s_thing * thing);
-struct s_pop copy_pop(struct s_thing * t);
+void copy_pop(struct s_thing * t, struct s_pop * p);
 
 float point_dist(struct s_point * a, struct s_point * b);
 float point_dist(struct s_pop * a, struct s_pop * b);

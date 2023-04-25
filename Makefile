@@ -5,7 +5,7 @@ OBJECTS_COCOA_GL= \
 	point_on_path.o \
 	main.o
 
-DEBUG = -g
+DEBUG = -glldb -g3
 
 cocoa_gl.temp: $(OBJECTS_COCOA_GL) cocoa_gl.app/Contents/Resources/English.lproj/MainMenu.nib
 	g++ $(DEBUG) --std=c++11 -Wall -framework Cocoa -framework OpenGL -L/opt/homebrew/lib $(OBJECTS_COCOA_GL) -o cocoa_gl.temp
@@ -15,7 +15,7 @@ cocoa_gl.temp: $(OBJECTS_COCOA_GL) cocoa_gl.app/Contents/Resources/English.lproj
 
 %.o: %.c %.h
 	cc $(DEBUG) -Wall $*.c -c -o $@
-%.o: %.cpp %.hpp
+%.o: %.cpp %.h
 	g++ $(DEBUG) --std=c++11 -Wall $*.cpp -c -o $@
 %.o: %.mm
 	g++ $(DEBUG) -Wall $*.mm -c -o $@
