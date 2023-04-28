@@ -12,18 +12,17 @@
 
 timeval lastFrame = { 0, 0 };
 float view_ratio = 1;
-float rotate[3] = { 0, 0, 0 };
+// float rotate[3] = { 0, 0, 0 };
 float path_circumference = 5000; // 5km
 
-// GLfloat zoom_value = 0.5;
-// GLfloat dest_zoom  = 0.5;
 GLfloat offset_value[2]      = { 0, 0 };
 GLfloat dest_offset_value[2] = { 0, 0 };
 
-GLfloat zoom_value = .44;//.9;
-GLfloat dest_zoom  = .44;//.9;
-// GLfloat offset_value[2]      = { -2961.904785, 1954.159668 };
-// GLfloat dest_offset_value[2] = { -2961.904785, 1954.159668 };
+GLfloat zoom_value = .44; //.9;
+GLfloat dest_zoom  = .44; //.9;
+
+int camera_on_path = -1;
+int camera_on_thing = 6;
 
 float scale_big = 5;
 enum {
@@ -41,6 +40,20 @@ void extend_content_bounds(double x, double y) {
   content_bounds[1] = fmax(content_bounds[1], x);
   content_bounds[2] = fmin(content_bounds[2], y);
   content_bounds[3] = fmax(content_bounds[3], y);
+}
+
+void draw_circle_between_two_points(struct s_pop * p1, struct s_pop * p2) {
+  struct s_pop p;
+  p.x = (p1->x + p2->x) * .5;
+  p.y = (p1->y + p2->y) * .5;
+  double r = sqrt((p1->x - p2->x)*(p1->x - p2->x) + (p1->y - p2->y)*(p1->y - p2->y)) * 0.5;
+
+  glColor4f(0, 0, 0, 1);
+  glBegin(GL_LINE_LOOP);
+  for (int i = 0 ; i < 200 ; i++) {
+    glVertex3f(p.x + cos(i / 200. * 3.1415926535 * 2.) * r, p.y + sin(i / 200. * 3.1415926535 * 2.) * r, 0);
+  }
+  glEnd();
 }
 
 @implementation BasicOpenGLView
@@ -75,11 +88,42 @@ int frame_id = 0;
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glDisable(GL_DEPTH_TEST);
 
-  // glBegin(GL_LINES);
-  // glColor4f(0, 0, 0, 1);
-  // glVertex3f(content_center[0], content_center[1], 0);
-  // glVertex3f(content_center[0] + 10000, content_center[1] + 10000, 0);
-  // glEnd();
+  if (camera_on_path >= 0 && camera_on_path < num_paths &&
+      camera_on_thing >= 0 && camera_on_thing < paths[camera_on_path]->num_things) {
+    struct s_thing * t = paths[camera_on_path]->things[camera_on_thing];
+    struct s_pop start; copy_pop(t, &start);
+    struct s_pop end; copy_pop(t, &end);
+    offset_along_path(paths[camera_on_path], &end, -((t->num_segments - 1) * t->height * scale_big));
+
+    struct s_pop minp;
+    minp.x = fmin(start.x, end.x);
+    minp.y = fmin(start.y, end.y);
+
+    struct s_pop maxp;
+    maxp.x = fmax(start.x, end.x);
+    maxp.y = fmax(start.y, end.y);
+
+    glBegin(GL_LINES);
+    glColor4f(0, 0, 0, 1);
+    glVertex3f(t->p.x + 100, t->p.y + 100, 0); glVertex3f(t->p.x + 100, t->p.y - 100, 0);
+    glVertex3f(t->p.x + 100, t->p.y - 100, 0); glVertex3f(t->p.x - 100, t->p.y - 100, 0);
+    glVertex3f(t->p.x - 100, t->p.y - 100, 0); glVertex3f(t->p.x - 100, t->p.y + 100, 0);
+    glVertex3f(t->p.x - 100, t->p.y + 100, 0); glVertex3f(t->p.x + 100, t->p.y + 100, 0);
+
+    glVertex3f(end.x  + 100, end.y  + 100, 0); glVertex3f(end.x  + 100, end.y  - 100, 0);
+    glVertex3f(end.x  + 100, end.y  - 100, 0); glVertex3f(end.x  - 100, end.y  - 100, 0);
+    glVertex3f(end.x  - 100, end.y  - 100, 0); glVertex3f(end.x  - 100, end.y  + 100, 0);
+    glVertex3f(end.x  - 100, end.y  + 100, 0); glVertex3f(end.x  + 100, end.y  + 100, 0);
+
+    glVertex3f(maxp.x, maxp.y, 0); glVertex3f(maxp.x, minp.y, 0);
+    glVertex3f(maxp.x, minp.y, 0); glVertex3f(minp.x, minp.y, 0);
+    glVertex3f(minp.x, minp.y, 0); glVertex3f(minp.x, maxp.y, 0);
+    glVertex3f(minp.x, maxp.y, 0); glVertex3f(maxp.x, maxp.y, 0);
+    glEnd();
+
+    // draw_circle_between_two_points(&minp, &maxp);
+  }
+
 
   for (int path_i = 0 ; path_i < num_paths ; path_i++) {
     struct s_path * path = paths[path_i];
@@ -104,7 +148,6 @@ int frame_id = 0;
     // glEnd();
 
     glBegin(GL_LINES);
-
     for (int i = 0 ; i < path->num_things ; i++) {
       if (path->things[i]->type == STOP) glColor4f(1, 0, 0, 1);
       if (path->things[i]->type == ACTOR) glColor4f(0, 1, 0, 1);
@@ -114,11 +157,12 @@ int frame_id = 0;
         path->things[i]->p.y * ((i + 2) / (path->num_things + 5.)),
       0);
     }
+    glEnd();
 
-    if (frame_id == 10 || (frame_id > 149 && frame_id < 153)) {
-      printf("frame %d time\n", frame_id);
-      printf("path %d has %d things\n", path_i, path->num_things);
-    }
+    // if (frame_id == 10 || (frame_id > 149 && frame_id < 153)) {
+    //   printf("frame %d time\n", frame_id);
+    //   printf("path %d has %d things\n", path_i, path->num_things);
+    // }
 
     for (int path_thing_i = 0 ; path_thing_i < path->num_things ; path_thing_i++) {
       struct s_thing * thing = path->things[path_thing_i];
@@ -132,11 +176,15 @@ int frame_id = 0;
         if (dest_thing != NULL
          && actor->on_path == dest_thing->on_path
         //  && point_dist((struct s_point *)(&actor->p), (struct s_point *)(&dest_thing->p)) > 1.
-         && actor->num_segments > 1
+         // && actor->num_segments > 1
           )
         {
+          // glColor4f(0, 0, 0, 1);
           // glVertex3f(actor->p.x, actor->p.y, 0);
+          // glColor4f(1, 1, 1, 1);
           // glVertex3f(dest_thing->p.x, dest_thing->p.y, 0);
+
+          // draw_circle_between_two_points(&actor->p, &dest_thing->p);
 
           // float time_to_full_speed = (actor->max_velocity - actor->velocity) / fabs(actor->max_acceleration);
           // float dist_to_full_speed = actor->velocity * time_to_full_speed + 0.5 * fabs(actor->max_acceleration) * pow(time_to_full_speed, 2);
@@ -189,19 +237,18 @@ int frame_id = 0;
         }
       }
     }
-    glEnd();
 
 
     glBegin(GL_QUADS);
     for (int path_thing_i = 0 ; path_thing_i < path->num_things ; path_thing_i++) {
       struct s_thing * thing = path->things[path_thing_i];
 
-      if (frame_id == 10 || (frame_id > 149 && frame_id < 153)) {
-        printf("  path %d thing %d is type %d (velo = %f) num_route_things = %d\n", path_i, path_thing_i, thing->type, thing->velocity, thing->num_route_things);
-        if (thing->num_route_things > 2) {
-          printf("    thing[2] = %ld\n", thing->route_things[2]);
-        }
-      }
+      // if (frame_id == 10 || (frame_id > 149 && frame_id < 153)) {
+      //   printf("  path %d thing %d is type %d (velo = %f) num_route_things = %d\n", path_i, path_thing_i, thing->type, thing->velocity, thing->num_route_things);
+      //   if (thing->num_route_things > 2) {
+      //     printf("    thing[2] = %ld\n", thing->route_things[2]);
+      //   }
+      // }
 
       glColor4f(0.6 - 0.2 * path_thing_i, 0.2 * path_thing_i, 0, 0.6);
       // float draw_hyp = sqrt((100 * 0.5) * (100 * 0.5) + (100 * 0.5) * (100 * 0.5));
@@ -220,10 +267,6 @@ int frame_id = 0;
         if (scale_big) draw_hyp *= scale_big; // just so it's visible
         
         glColor4f(0.6, 0.6, 0.6, 0.6);
-        // glVertex3f(thing->p.x + 30, thing->p.y + 30, 0);
-        // glVertex3f(thing->p.x + 30, thing->p.y - 30, 0);
-        // glVertex3f(thing->p.x - 30, thing->p.y - 30, 0);
-        // glVertex3f(thing->p.x - 30, thing->p.y + 30, 0);
 
         for (int k = 0 ; k < stop->num_segments ; k++) {
           struct s_pop p2;
@@ -256,121 +299,111 @@ int frame_id = 0;
         if (scale_big) draw_hyp *= scale_big; // just so it's visible
 
         if (actor->num_segments == 0) { printf("actor has 0 num_segments\n"); exit(1); }
-        if (actor->num_route_things == 0) { printf("actor has no route things, thats no good at the moment\n"); exit(1); }
+        // if (actor->num_route_things == 0) { continue; printf("actor has no route things, thats no good at the moment\n"); exit(1); }
         if (actor->prev_thing == NULL || actor->next_thing == NULL) { printf("actor has no prev_thing or no next_thing\n"); exit(1); }
 
-        struct s_thing * dest_thing = actor->route_things[actor->route_step];
-        if (dest_thing == NULL) {
-          printf("%d dest_thing is null man\n", frame_id);
-          for (int i = 0 ; i < path->num_things ; i++) {
-            if (path->things[i]->type == STOP)
-              printf("%d: %d\n", i, path->things[i]->type);
-            else if (path->things[i]->type == ACTOR) {
-              printf("%d: %d seg:%d route:%d\n", i, path->things[i]->type, path->things[i]->num_segments, ((struct s_thing*)path->things[i])->num_route_things);
-              for (int j = 0 ; j < path->things[i]->num_route_things ; j++) {
-                printf("  %d: %ld\n", j, path->things[i]->route_things[j]);
-              }
+        if (actor->num_route_things > 0) {
+          struct s_thing * dest_thing = actor->route_things[actor->route_step];
+
+          float dist_to_prev_actor = real_distance(actor->on_path, actor->prev_thing, (struct s_thing *)actor);
+          // float dist_to_next_actor = real_distance(actor->on_path, (struct s_thing *)actor, actor->next_thing);
+
+          glEnd();
+          draw_circle_between_two_points(&actor->p, &actor->next_thing->p);
+          glBegin(GL_QUADS);
+
+          glColor4f(0.5, 0.5, 0.5, 1.0);
+          // float full_length = path_length(path);
+          // float perc = 0, angle = actor->p.angle;
+          // int a_index;
+          // actor_on_path(path, actor);
+          // printf("%d: %f %f\n", j, p.x, p.y);
+
+          float dist_to_destination_front = real_distance(actor->on_path, (struct s_thing *)actor, dest_thing);
+          // float dist_to_destination_front = real_distance(actor->on_path, (struct s_thing *)actor, dest_thing);
+          float dist_to_destination_back = dist_to_destination_front + ((actor->num_segments - 1) * actor->height * scale_big);
+
+          // float time_to_full_speed = (actor->max_velocity - actor->velocity) / fabs(actor->max_acceleration);
+          // float dist_to_full_speed = actor->velocity * time_to_full_speed + 0.5 * fabs(actor->max_acceleration) * pow(time_to_full_speed, 2);
+
+          float time_to_stop = dest_thing == NULL ? 0 : (actor->velocity - dest_thing->velocity) / fabs(actor->max_acceleration);
+          float dist_to_stop = actor->velocity * time_to_stop + 0.5 * -fabs(actor->max_acceleration) * pow(time_to_stop, 2);
+
+          if (dist_to_destination_front < 10) {
+            actor->acceleration = dest_thing->acceleration;
+            actor->velocity = dest_thing->velocity;
+            actor->route_step ++;
+            if (actor->route_step >= actor->num_route_things) {
+              actor->route_step -= actor->num_route_things;
             }
-          }
-          exit(1);
-          continue;
-        }
-        float dist_to_dest_thing = real_distance(actor->on_path, (struct s_thing *)actor, dest_thing);
-
-        float dist_to_prev_actor = real_distance(actor->on_path, actor->prev_thing, (struct s_thing *)actor);
-        float dist_to_next_actor = real_distance(actor->on_path, (struct s_thing *)actor, actor->next_thing);
-
-        if (frame_id < 5 && path_thing_i == 1) {
-          printf("%d %f %f %f %f %f %f %f %f\n", path_thing_i, actor->velocity, dist_to_dest_thing, dist_to_prev_actor, dist_to_next_actor, actor->p.x, actor->p.y, actor->prev_thing->p.x, actor->prev_thing->p.y);
-        }
-
-        glColor4f(0.5, 0.5, 0.5, 1.0);
-        // float full_length = path_length(path);
-        // float perc = 0, angle = actor->p.angle;
-        // int a_index;
-        // actor_on_path(path, actor);
-        // printf("%d: %f %f\n", j, p.x, p.y);
-
-        float dist_to_destination_front = real_distance(actor->on_path, (struct s_thing *)actor, dest_thing);
-        float dist_to_destination_back = dist_to_destination_front + ((actor->num_segments - 1) * actor->height * scale_big);
-
-        // float time_to_full_speed = (actor->max_velocity - actor->velocity) / fabs(actor->max_acceleration);
-        // float dist_to_full_speed = actor->velocity * time_to_full_speed + 0.5 * fabs(actor->max_acceleration) * pow(time_to_full_speed, 2);
-
-        float time_to_stop = (actor->velocity - dest_thing->velocity) / fabs(actor->max_acceleration);
-        float dist_to_stop = actor->velocity * time_to_stop + 0.5 * -fabs(actor->max_acceleration) * pow(time_to_stop, 2);
-
-        if (dist_to_destination_front < 5) {
-          actor->acceleration = dest_thing->acceleration;
-          actor->velocity = dest_thing->velocity;
-          actor->route_step ++;
-          if (actor->route_step >= actor->num_route_things) {
-            actor->route_step -= actor->num_route_things;
-          }
-        } else if (dist_to_stop < dist_to_destination_front) {
-          glColor4f(0.2, 0.6, 0, 0.6);
-          actor->acceleration = fabs(actor->max_acceleration);
-        } else if (dist_to_stop > dist_to_destination_front) {
-          glColor4f(0.6, 0.2, 0, 0.6);
-          actor->acceleration = -fabs(actor->max_acceleration);
-        }
-
-        // detach end car
-        if (mode_enum == SPECIAL
-         && dist_to_stop > dist_to_destination_front
-         && dist_to_stop < dist_to_destination_back)
-        {
-          printf("%d detach %d (%d) (%d) %ld\n", frame_id, path_thing_i, actor->num_segments, actor->num_route_things, dest_thing);
-
-          actor->num_segments -= 1;
-          if (actor->num_segments < 1) {
-            printf(" maybe oops\n");
-            actor->num_segments = 1;
-          } else {
-            struct s_pop p2;
-            copy_pop((struct s_thing *)actor, &p2);
-            offset_along_path(path, &p2, -(actor->num_segments * actor->height * scale_big));
-            struct s_thing * new_actor = add_new_actor_on_path(actor->on_path, p2.x, p2.y, actor->max_velocity, actor->max_acceleration);
-            new_actor->num_segments = 1;
-            new_actor->velocity = actor->velocity * 0.75;
-            new_actor->acceleration = actor->acceleration;
-            add_thing_to_actor_route(new_actor, dest_thing);
+          } else if (dist_to_stop < dist_to_destination_front) {
+            glColor4f(0.2, 0.6, dist_to_stop / 400., 0.6);
+            actor->acceleration = fabs(actor->max_acceleration);
+          } else if (dist_to_stop > dist_to_destination_front) {
+            glColor4f(0.2, 0.6, dist_to_stop / 400., 0.6);
+            actor->acceleration = -fabs(actor->max_acceleration);
           }
 
-          actor->route_step ++;
-          if (actor->route_step >= actor->num_route_things) {
-            actor->route_step = 0;
-          }
-          // glColor4f(0.6, 0.2, 0.6, 0.6);
-
-          update_next_prev_things(path);
-        }
-        else if (mode_enum == SPECIAL // check behind, not in front
-         && actor->num_segments == 1
-         && ((struct s_thing*)actor->prev_thing)->num_segments > 1)
-        {
-
-          // if (frame_id < 10)
-          //   printf("%f %f\n", dist_to_prev_actor, actor->height);
-          float time_to_full_speed = (actor->max_velocity - actor->velocity) / fabs(actor->max_acceleration);
-          float dist_to_full_speed = actor->velocity * time_to_full_speed + 0.5 * fabs(actor->max_acceleration) * pow(time_to_full_speed, 2);
-
-          if (dist_to_prev_actor - dist_to_full_speed < (actor->height * (actor->num_segments)) * scale_big) {
-            actor->acceleration = actor->max_acceleration;
-          }
-
-          if ( (dist_to_prev_actor < (actor->height * actor->num_segments) * scale_big)
-            && ((struct s_thing *)actor->prev_thing)->velocity > actor->velocity)
+          // detach end car
+          if (mode_enum == SPECIAL
+           && dist_to_stop > dist_to_destination_front
+           && dist_to_stop < dist_to_destination_back)
           {
+            // printf("%d detach %d (%d) (%d) %ld\n", frame_id, path_thing_i, actor->num_segments, actor->num_route_things, dest_thing);
 
-            // glColor4f(1, 0, 0, 1);
-            printf("%d attach %d (%d) (%d)\n", frame_id, path_thing_i, actor->num_segments, actor->num_route_things);
+            actor->num_segments -= 1;
+            if (actor->num_segments < 1) {
+              printf(" maybe oops\n");
+              actor->num_segments = 1;
+            } else {
+              struct s_pop p2;
+              copy_pop((struct s_thing *)actor, &p2);
+              offset_along_path(path, &p2, -(actor->num_segments * actor->height * scale_big));
+              struct s_thing * new_actor = add_new_actor_on_path(actor->on_path, p2.x, p2.y, actor->max_velocity, actor->max_acceleration);
+              new_actor->num_segments = 1;
+              new_actor->velocity = actor->velocity * 0.75;
+              new_actor->acceleration = actor->acceleration;
+              add_thing_to_actor_route(new_actor, dest_thing);
+            }
 
-            ((struct s_thing*)actor->prev_thing)->num_segments += actor->num_segments;
-            offset_along_path(path, &actor->prev_thing->p, dist_to_prev_actor);
-            remove_thing_from_path(path, (struct s_thing *)actor);
+            actor->route_step ++;
+            if (actor->route_step >= actor->num_route_things) {
+              actor->route_step = 0;
+            }
+            // glColor4f(0.6, 0.2, 0.6, 0.6);
 
             update_next_prev_things(path);
+          }
+          else if (mode_enum == SPECIAL // check behind, not in front
+           && actor->num_segments == 1
+           && (actor->prev_thing)->num_segments > 1)
+          {
+            struct s_thing * prev_dest_thing = actor->prev_thing->route_things[actor->prev_thing->route_step];
+            // if (prev_dest_thing != actor) {
+            //   printf("hehe %d %d\n", prev_dest_thing, actor);
+            //   exit(1);
+            // }
+
+            float time_to_full_speed = (actor->max_velocity - actor->velocity) / fabs(actor->max_acceleration);
+            float dist_to_full_speed = actor->velocity * time_to_full_speed + 0.5 * fabs(actor->max_acceleration) * pow(time_to_full_speed, 2);
+
+            if (dist_to_prev_actor - dist_to_full_speed < (actor->height * (actor->num_segments)) * scale_big) {
+              actor->acceleration = actor->max_acceleration;
+            }
+
+            if ( (dist_to_prev_actor < (actor->height * actor->num_segments) * scale_big)
+              && ((struct s_thing *)actor->prev_thing)->velocity > actor->velocity)
+            {
+
+              glColor4f(1, 0, 0, 1);
+              printf("%d attach %d (%d) (%d)\n", frame_id, path_thing_i, actor->num_segments, actor->num_route_things);
+
+              (actor->prev_thing)->num_segments += actor->num_segments;
+              offset_along_path(path, &actor->prev_thing->p, dist_to_prev_actor);
+              remove_thing_from_path(path, (struct s_thing *)actor);
+
+              update_next_prev_things(path);
+            }
           }
         }
 
@@ -386,7 +419,7 @@ int frame_id = 0;
         // if (dist_to_prev_thing < (dist_to_prev_thing_speed + prev_thing_dest_to_halt + actor->height * 2))
         // {
         //   // printf("accel\n");
-        //   struct s_thing * prev_actor = (struct s_thing*)actor->prev_thing;
+        //   struct s_thing * prev_actor = actor->prev_thing;
         //   if (actor->prev_thing->type == ACTOR && prev_actor->num_route_things > 0) {
         //     // add_thing_to_actor_route(actor, prev_actor->route_things[prev_actor->route_step]);
         //     // prev_actor->route_step++;
@@ -479,7 +512,43 @@ int frame_id = 0;
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
-  glOrtho(content_bounds[0], content_bounds[1], content_bounds[2], content_bounds[3], 1, -1);
+  // if (camera_on_path >= 0 && camera_on_path < num_paths &&
+  //     camera_on_thing >= 0 && camera_on_thing < paths[camera_on_path]->num_things) {
+  //   struct s_thing * t = paths[camera_on_path]->things[camera_on_thing];
+  //   struct s_pop start; copy_pop(t, &start);
+  //   struct s_pop end; copy_pop(t, &end);
+  //   offset_along_path(paths[camera_on_path], &end, -((t->num_segments - 1) * t->height * scale_big));
+
+  //   struct s_pop minp;
+  //   minp.x = fmin(start.x, end.x);
+  //   minp.y = fmin(start.y, end.y);
+
+  //   struct s_pop maxp;
+  //   maxp.x = fmax(start.x, end.x);
+  //   maxp.y = fmax(start.y, end.y);
+
+  //   // printf("%f %f %f %f\n", start.x, start.y, end.x, end.y);
+  //   // printf("%f %f %f %f\n", minp.x, minp.y, maxp.x, maxp.y);
+  //   // exit(1);
+  //   // glColor4f(0, 0, 0, 1);
+  //   // glVertex3f(p.x + 200, p.y + 200, 0);
+  //   // glVertex3f(p.x + 200, p.y - 200, 0);
+    
+  //   // glVertex3f(p.x + 200, p.y - 200, 0);
+  //   // glVertex3f(p.x - 200, p.y - 200, 0);
+    
+  //   // glVertex3f(p.x - 200, p.y - 200, 0);
+  //   // glVertex3f(p.x - 200, p.y + 200, 0);
+    
+  //   // glVertex3f(p.x - 200, p.y + 200, 0);
+  //   // glVertex3f(p.x + 200, p.y + 200, 0);
+  //   // glOrtho(p.x - 400, p.x + 400, (p.y * view_ratio - 400), (p.y * view_ratio + 400), 1, -1);
+  //   glOrtho(minp.x, maxp.x, (minp.y), (maxp.y), 1, -1);
+  // }
+  // else
+  {
+    glOrtho(content_bounds[0], content_bounds[1], content_bounds[2], content_bounds[3], 1, -1);
+  }
 }
 
 - (void) updateModelView {
@@ -497,7 +566,7 @@ int frame_id = 0;
   // glRotatef(rotate[2], 0, 0, 1);
 
   // glTranslatef(-content_center[0], -content_center[1], 0);
-  glTranslatef(offset_value[0], offset_value[1], 0);
+  // glTranslatef(offset_value[0], offset_value[1], 0);
 }
 
 - (void) resizeGL {
@@ -518,12 +587,13 @@ int frame_id = 0;
       case 'd': case NSRightArrowFunctionKey: dest_offset_value[0] -= (content_bounds[1] - content_bounds[0]) / 10. * zoom_value; break;
       case 'w': case NSUpArrowFunctionKey:    dest_offset_value[1] -= (content_bounds[3] - content_bounds[2]) / 10. * zoom_value; break;
       case 's': case NSDownArrowFunctionKey:  dest_offset_value[1] += (content_bounds[3] - content_bounds[2]) / 10. * zoom_value; break;
-      // case 'b':
-      //   scale_big = !scale_big; 
+      case 't': camera_on_thing++; break;
+      case 'b':
+        scale_big = !scale_big; 
       //   // paths[0].actors[0].acceleration = paths[0].actors[0].max_acceleration; //0.5;
       //   // paths[0].actors[0].velocity = paths[0].actors[0].max_velocity; //0.5;
       //   // printf("%f %f\n", paths[0].actors[0].velocity, paths[0].actors[0].acceleration);
-      //   break;
+        break;
       case 'q':
       case 27: // esc
         // printf("dest_offset_value[1] = content_offset[1] = %f;\n", content_offset[1]);
@@ -539,6 +609,8 @@ int frame_id = 0;
         break;
 		}
 	}
+  if (camera_on_thing >= paths[camera_on_path]->num_things)
+    camera_on_thing -= paths[camera_on_path]->num_things;
 }
 
 - (void) keyUp:(NSEvent *)theEvent {
@@ -614,8 +686,7 @@ int frame_id = 0;
   [self setPixelFormat:windowedPixelFormat];
   [self setOpenGLContext:openGLContext];
   [openGLContext makeCurrentContext];
-
-  NSLog(@"Setting up main window.");
+  // NSLog(@"Setting up main window.");
 
   [windowedPixelFormat release];
   [self setWantsBestResolutionOpenGLSurface:YES];
@@ -650,8 +721,8 @@ int frame_id = 0;
 
   float max_velocity = 800000 / 3600.;
   float max_acceleration = 9.8066 * 10;
-  // float max_velocity = 80000 / 3600.;    // 80km/hr
-  // float max_acceleration = 9.8066 * 0.3; // 0.3g
+  // float max_velocity     = 80000 / 3600.; // 80km/hr
+  // float max_acceleration = 9.8066 * 0.3;  // 0.3g
   
   // add_new_actor_on_path(path,  0.707 * radius, -0.707 * radius, max_velocity, max_acceleration);
   // add_new_actor_on_path(path, -0.707 * radius, -0.707 * radius, max_velocity, max_acceleration);
@@ -668,56 +739,40 @@ int frame_id = 0;
   int num_stops = 6;
   for (int i = 0 ; i < num_stops ; i++) {
     struct s_thing * stop = add_new_stop_on_path(path, cos(i / (float)num_stops * 3.1415926535 * 2.) * radius, sin(i / (float)num_stops * 3.1415926535 * 2.) * radius);
-    // add_thing_to_actor_route(maintrain, (struct s_thing *)stop);
     temp_stops[i] = stop;
   }
 
-  for (int i = 0 ; i < num_stops ; i++) {
+  struct s_thing * parked_trains[10];
+  int num_trains = 6;
+  for (int i = 0 ; i < num_trains ; i++) {
+    parked_trains[i] = add_new_actor_on_path(path, temp_stops[i]->p.x, temp_stops[i]->p.y, max_velocity, max_acceleration);
+    // add_thing_to_actor_route(parked_trains[i], temp_stops[i]);
     if (mode_enum == SPECIAL) {
-      if (i % 2 == 0) {
-        struct s_thing * parkedtrain = add_new_actor_on_path(path, temp_stops[i]->p.x, temp_stops[i]->p.y, max_velocity, max_acceleration);
-
-        // parkedtrain->num_segments = 5;
-        for (int k = 0 ; k < num_stops ; k++) {
-        // for (int k = 0, j = i ; k < num_stops ; k++) {
-          if (k % 2 == 0) {
-            add_thing_to_actor_route(parkedtrain, (struct s_thing*)temp_stops[k]);
-          }
-      //     if (j++ >= num_stops) j -= num_stops;
-        }
-      // } else {
-      //   parkedtrain->num_segments = 1;
-      //   add_thing_to_actor_route(parkedtrain, (struct s_thing*)temp_stops[i]);
-      }
-    } else if (i % 2 == 0) { // num_stops - 1) {
-      // struct s_thing * parkedtrain = add_new_actor_on_path(path, temp_stops[i]->p.x, temp_stops[i]->p.y, max_velocity, max_acceleration);
-      // printf("%d\n", i);
-
-      // parkedtrain->num_segments = 6;
-      // add_thing_to_actor_route(parkedtrain, (struct s_thing*)temp_stops[num_stops - 1]);
-      // for (int k = 0, j = i ; k < num_stops ; k++) {
-      //   printf("  %d\n", j);
-      //   add_thing_to_actor_route(parkedtrain, (struct s_thing*)temp_stops[j]);
-      //   if (++j >= num_stops) j -= num_stops;
-      // }
-      // parkedtrain->velocity = parkedtrain->max_velocity;
-    // } else {
-    //   struct s_thing * parkedtrain = add_new_actor_on_path(path, temp_stops[i]->p.x, temp_stops[i]->p.y, max_velocity, max_acceleration);
-    //   parkedtrain->num_segments = 1;
-    //   add_thing_to_actor_route(parkedtrain, (struct s_thing*)temp_stops[i]);
+      parked_trains[i]->num_segments = (i % 2 == 0) ? 6 : 1;
     }
   }
 
-  for (int i = 0 ; i < path->num_things ; i++) {
-    if (path->things[i]->type == STOP)
-      printf("%d: %d\n", i, path->things[i]->type);
-    else if (path->things[i]->type == ACTOR)
-      printf("%d: %d seg:%d route:%d\n", i, path->things[i]->type, path->things[i]->num_segments, ((struct s_thing*)path->things[i])->num_route_things);
+  for (int i = 0 ; i < num_trains ; i++) {
+    if (parked_trains[i]->num_segments == 1) {
+      add_thing_to_actor_route(parked_trains[i], temp_stops[i]);
+    } else {
+      for (int j = 0, k = i ; j < num_stops ; j++) {
+        add_thing_to_actor_route(parked_trains[i], temp_stops[k]);
+        if (++k == num_stops) k = 0;
+      }
+    }
   }
+
+  // for (int i = 0 ; i < path->num_things ; i++) {
+  //   if (path->things[i]->type == STOP)
+  //     printf("%d: %d\n", i, path->things[i]->type);
+  //   else if (path->things[i]->type == ACTOR)
+  //     printf("%d: %d seg:%d route:%d\n", i, path->things[i]->type, path->things[i]->num_segments, (path->things[i])->num_route_things);
+  // }
 
   content_center[0] = (content_bounds[0] + content_bounds[1]) / 2;
   content_center[1] = (content_bounds[2] + content_bounds[3]) / 2;
-  printf("content_center = %f %f\n", content_center[0], content_center[1]);
+  // printf("content_center = %f %f\n", content_center[0], content_center[1]);
 
   glHint(GL_LINE_SMOOTH_HINT, GL_FASTEST);
   glEnable(GL_LINE_SMOOTH);

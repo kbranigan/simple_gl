@@ -305,7 +305,8 @@ float real_distance(struct s_path * path, struct s_thing * a, struct s_thing * b
   }
   // printf("stop = %d\n", stop);
 
-  if (start == path->num_points && stop == 0) return 0;
+  if (start == path->num_points - 1 && stop == 0) return 0;
+  if (start == path->num_points) start = 0;
 
   for (int i = start ; i != stop ; i++) {
     ret += point_dist(&path->points[i], &path->points[i == path->num_points - 1 ? 0 : i + 1]);

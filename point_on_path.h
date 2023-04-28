@@ -43,49 +43,6 @@ struct s_thing {
   struct s_thing ** route_things;
 };
 
-// struct s_actor {
-//   enum thing_type type;
-//   struct s_pop p;
-//   struct s_path * on_path;
-//   struct s_thing * next_thing;
-//   struct s_thing * prev_thing;
-//   float velocity; // m/s
-//   float max_velocity; // m/s
-//   float acceleration; // m/s/s
-//   float max_acceleration; // 1g = 9.8066 m/s/s
-//   float width, height;
-//   int num_segments;
-
-//   ////////////////////
-
-//   float path_offset; // left/right side
-//   int route_step;
-//   int num_route_things;
-//   struct s_thing ** route_things;
-//   // struct s_route route;
-// };
-
-// struct s_stop {
-//   enum thing_type type;
-//   struct s_pop p;
-//   struct s_path * on_path;
-//   struct s_thing * next_thing;
-//   struct s_thing * prev_thing;
-//   float velocity; // m/s
-//   float max_velocity; // m/s
-//   float acceleration; // m/s/s
-//   float max_acceleration; // 1g = 9.8066 m/s/s
-//   float width, height;
-//   int num_segments;
-
-//   ////////////////////
-
-//   float path_offset; // left/right side
-//   int route_step;
-//   int num_route_things;
-//   struct s_thing ** route_things;
-// };
-
 struct s_path {
   float path_length;
 
